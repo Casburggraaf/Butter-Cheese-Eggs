@@ -23,7 +23,7 @@
   }
 
   const game = {
-    score: new Array(9),
+    score: new Array(9).fill(null),
     player: null,
     turn: true,
     move(index) {
@@ -60,7 +60,7 @@
       app.socket.on('set', function(score){
         game.score = score.score;
         game.setColor();
-        if (score.user !== game.player) {
+        if (score.user !== game.player && (score.user === "Green" || score.user == "Yellow")) {
           game.turn = true;
         }
       });
