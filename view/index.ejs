@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Boter Kaas Eieren</title>
+    <link rel="stylesheet" href="style/style.css" />
+</head>
+<body>
+<header>
+	<h1>Boter kaas en eiren</h1>
+  <a href="#">Green</a><br><a href="#">Yellow</a>
+</header>
+<main>
+  	<table>
+  		<tr>
+  			<td></td>
+  			<td></td>
+  			<td></td>
+  		</tr>
+  		<tr>
+  			<td></td>
+  			<td></td>
+  			<td></td>
+  		</tr>
+  		<tr>
+  			<td></td>
+  			<td></td>
+  			<td></td>
+  		</tr>
+  	</table>
+    <div id="sidebar">
+        <p id="score"><span id="scoreGroen">0</span>X<span id="scoreGeel">0</span></p>
+        <p class="sidebaruitleg">De bedoeling van het spel is 3 op een rij te krijgen. Je kan dit onder elkaar doen, naast elkaar of kruislings</p>
+        <p id="resetBeurt" class="sidebarTekst">Reset de Beurt<br> of gebruikt "spatiebalk"</p>
+        <p id="resetGame" class="sidebarTekst">Reset de Game<br> of gebruikt "enter"</p>
+    </div>
+</main>
+<script src="/socket.io/socket.io.js"></script>
+<script type="text/javascript" src="js/app.js"></script>
+</body>
+</html>
