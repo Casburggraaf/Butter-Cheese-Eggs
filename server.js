@@ -4,6 +4,7 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
+var Twitter = require('twitter');
 
 app.use(express.static('static'))
   .set('view engine', 'ejs')
@@ -12,23 +13,23 @@ app.use(express.static('static'))
   .get('/index.html', index)
 
 function index(req, res) {
-  res.render('index.ejs');
+  res.render('index.ejs', {gameId: game.gameId});
 }
 
 const game = {
   score: new Array(9).fill(null),
   player: null,
+  gameId: Math.floor(Math.random() * 90000) + 10000,
   checkEnding() {
-    for(let i = 0; i < this.score.length; i++){
-      console.log(this.score[i]);
-      if (this.score[i] === false) {
-        return false;
-      }
+    if((this.score[0] === "Green" && this.score[1] === "Green" && this.score[2] === "Green") || (this.score[3] === "Green" && this.score[4] === "Green" && this.score[5] === "Green") || (this.score[6] === "Green" && this.score[7] === "Green" && this.score[8] === "Green") || (this.score[0] === "Green" && this.score[4] === "Green" && this.score[8] === "Green") || (this.score[2] === "Green" && this.score[4] === "Green" && this.score[6] === "Green")) {
+      this.score = new Array(9).fill(null);
+      return true;
+    } else if((this.score[0] === "Green" && this.score[1] === "Yellow" && this.score[2] === "Yellow") || (this.score[3] === "Yellow" && this.score[4] === "Yellow" && this.score[5] === "Yellow") || (this.score[6] === "Yellow" && this.score[7] === "Yellow" && this.score[8] === "Yellow") || (this.score[0] === "Yellow" && this.score[4] === "Yellow" && this.score[8] === "Yellow") || (this.score[2] === "Yellow" && this.score[4] === "Yellow" && this.score[6] === "Yellow")) {
+      this.score = new Array(9).fill(null);
+      return true;
     }
   }
 }
-
-game.checkEnding();
 
 io.on('connection', function(socket){
   console.log('a user connected');
@@ -46,6 +47,10 @@ io.on('connection', function(socket){
 
     if (game.checkEnding()) {
       console.log("asjlkdfhklsjdh");
+      io.emit('set', {
+        score: game.score,
+        player: game.player
+      });
     }
     console.log(msg);
 
@@ -53,6 +58,75 @@ io.on('connection', function(socket){
 
   socket.on('disconnect', function(){
     console.log('user disconnected');
+  });
+});
+
+require('dotenv').config()
+
+var client = new Twitter({
+  consumer_key: process.env.TWITTER_CONSUMER_KEY,
+  consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+  access_token_key: process.env.TWITTER_ACCESS_TOKEN_KEY,
+  access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET
+});
+
+// You can also get the stream in a callback if you prefer.
+client.stream('statuses/filter', {track: '#buttercheeseeggs'}, function(stream) {
+  stream.on('data', function(event) {
+    console.log(event && event.text);
+    console.log(event.user);
+
+    console.log(typeof event.text);
+    let gameId = event.text.split("#game").pop();
+    console.log("gameid= " + gameId);
+
+    if (gameId == game.gameId) {
+      if(event.text.includes("Green")){
+        let number = event.text.match(/\d/g);
+        number = number.join("");
+        number = number.substring(0,1)
+        console.log(number, typeof number);
+        if (number >= 1 && number <= 9) {
+          game.score[number - 1] = "Green";
+          game.player = "Green";
+          io.emit('set', {
+            score: game.score,
+            player: game.player
+          });
+
+          if (game.checkEnding()) {
+            io.emit('set', {
+              score: game.score,
+              player: game.player
+            });
+          }
+        }
+      } else if(event.text.includes("Yellow")){
+        let number = event.text.match(/\d/g);
+        number = number.join("");
+        number = number.substring(0,1)
+        console.log(number, typeof number);
+        if (number >= 1 && number <= 9) {
+          game.score[number - 1] = "Yellow";
+          game.player = "Yellow";
+          io.emit('set', {
+            score: game.score,
+            player: game.player
+          });
+
+          if (game.checkEnding()) {
+            io.emit('set', {
+              score: game.score,
+              player: game.player
+            });
+          }
+        }
+      }
+    }
+  });
+
+  stream.on('error', function(error) {
+    console.log(error);
   });
 });
 

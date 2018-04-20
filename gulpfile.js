@@ -24,7 +24,7 @@ gulp.task('nodemon', function (cb) {
 
 	return nodemon({
 		script: 'server.js',
-    ignore: "static",
+    ignore: ["static", "*.json"],
     nodeArgs: ['--inspect=0.0.0.0:9229']
 	}).on('start', function () {
 		if (!started) {
