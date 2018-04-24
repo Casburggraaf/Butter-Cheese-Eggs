@@ -6,13 +6,16 @@
     <link rel="stylesheet" href="style/style.css" />
 </head>
 <body>
-<header>
-	<h1>Boter kaas en eiren</h1>
-  <a href="#">Green</a><br><a href="#">Yellow</a>
-  <h4>Game id <span id="gameId"><%= gameId %></span></h4>
-  <blockquote class="twitter-tweet" data-lang="nl"><p lang="en" dir="ltr">Green 7 <a href="https://twitter.com/hashtag/buttercheeseeggs?src=hash&amp;ref_src=twsrc%5Etfw">#buttercheeseeggs</a> <a href="https://twitter.com/hashtag/game72729?src=hash&amp;ref_src=twsrc%5Etfw">#game72729</a></p>&mdash; Cas Burggraaf (@CasBurggraafCMD) <a href="https://twitter.com/CasBurggraafCMD/status/987243754816929793?ref_src=twsrc%5Etfw">20 april 2018</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-</header>
 <main>
+  <div id="intro">
+    <h1>Welcome To ButterCheeseEgg</h1>
+    <p>This game is based on Tic Tac To but controlled by twitter<br>
+      Send a message to @ButterCheeseEgg on twitter with <em>Join</em> and the game id -> <em id="gameId">0000</em>
+    </p>
+    <h2 id="waitingTime"><span>60</span><br> Seconds before te game starts</h2>
+    <h2 id="users">There are <span>0</span> player in the lobby, we need atleast 2 to start te game</h2>
+  </div>
+  </div>
   	<table>
   		<tr>
   			<td></td>
@@ -32,9 +35,9 @@
   	</table>
     <div id="sidebar">
         <p id="score"><span id="scoreGroen">0</span>X<span id="scoreGeel">0</span></p>
-        <p class="sidebaruitleg">De bedoeling van het spel is 3 op een rij te krijgen. Je kan dit onder elkaar doen, naast elkaar of kruislings</p>
+        <!-- <p class="sidebaruitleg">De bedoeling van het spel is 3 op een rij te krijgen. Je kan dit onder elkaar doen, naast elkaar of kruislings</p>
         <p id="resetBeurt" class="sidebarTekst">Reset de Beurt<br> of gebruikt "spatiebalk"</p>
-        <p id="resetGame" class="sidebarTekst">Reset de Game<br> of gebruikt "enter"</p>
+        <p id="resetGame" class="sidebarTekst">Reset de Game<br> of gebruikt "enter"</p> -->
     </div>
 </main>
 <script src="/socket.io/socket.io.js"></script>
