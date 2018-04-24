@@ -20,13 +20,12 @@ app.use(express.static('static'))
   .get('/index.html', index)
 
 function index(req, res) {
-  res.render('index.ejs', {gameId: game.gameId});
+  res.render('index.ejs');
 }
 
 const game = {
   score: new Array(9).fill(null),
   player: "Green",
-  gameId: Math.floor(Math.random() * 9000) + 1000,
   checkEnding() {
     if((this.score[0] === "Green" && this.score[1] === "Green" && this.score[2] === "Green") || (this.score[3] === "Green" && this.score[4] === "Green" && this.score[5] === "Green") || (this.score[6] === "Green" && this.score[7] === "Green" && this.score[8] === "Green") || (this.score[0] === "Green" && this.score[4] === "Green" && this.score[8] === "Green") || (this.score[2] === "Green" && this.score[4] === "Green" && this.score[6] === "Green")) {
       this.score = new Array(9).fill(null);
@@ -40,11 +39,69 @@ const game = {
 
 const gameMechanics = {
   status: "intro",
+  gameId: Math.floor(Math.random() * 9000) + 1000,
+  sets: [],
+  move: 1,
   intro: true,
-  introTime: 60,
+  introTime: 20,
+  setTime: 20000,
   init() {
     if(this.status === "intro"){
+      sockets.init();
+      let coutndown = setInterval(() => {
+        this.introTime--;
+        console.log(this.introTime);
+        if(this.introTime <= 0){
+          if(players.length >= 2) {
+            this.intro = false;
+            this.status = "gameSetup";
+            clearInterval(coutndown);
+            this.init();
+          } else {
+            this.introTime = 60;
+            console.log(this);
+            sockets.emitIntro();
+          }
+        }
+      },1000);
+    } else if (this.status === "gameSetup") {
+      console.log(this.status);
+      players = utils.suffle(players);
+      twitter.tweetTeamInit();
+      sockets.emitIntro();
+      sockets.emitGame();
+      this.status = "game";
+      this.init();
+    } else if (this.status === "game") {
+      twitter.tweetTeam();
+      setTimeout(() => {
+        if (this.sets.length === 0) {
+          let avilibleChoses = [];
+          for (let i = 0; i < game.score.length; i++) {
+            if (game.score[i] === null) {
+              avilibleChoses.push(i);
+            };
+          }
+          console.log(avilibleChoses);
+          let randomChose = avilibleChoses[Math.floor(Math.random() * avilibleChoses.length)];
+          console.log(randomChose);
+          game.score[randomChose] = game.player;
+          if (game.player === "Green") {
+            game.player = "Yellow";
+          } else {
+            game.player = "Green";
+          }
+          sockets.emitGame();
+          this.init();
+        } else {
+          let moves = [];
+          for (let i = 0; i < sets.length; i++) {
+            moves.push(sets[i].set);
+          };
 
+          this.sets = [];
+        }
+      }, this.setTime);
     }
   }
 }
@@ -57,6 +114,7 @@ let players = [{
 }];
 
 const twitter = {
+  tweetTeamInitCountI: 0,
   tweetTeamCountI: 0,
   post(text) {
     const promise = new Promise(function (resolve, reject) {
@@ -74,14 +132,30 @@ const twitter = {
     });
     return promise;
   },
-  tweetTeam() {
-    if(this.tweetTeamCountI < players.length){
-      if (this.tweetTeamCountI % 2 == 0) {
-        players[this.tweetTeamCountI].color = "Green";
+  tweetTeamInit() {
+    if(this.tweetTeamInitCountI < players.length){
+      if (this.tweetTeamInitCountI % 2 == 0) {
+        players[this.tweetTeamInitCountI].color = "Green";
       } else {
-        players[this.tweetTeamCountI].color = "Yellow";
+        players[this.tweetTeamInitCountI].color = "Yellow";
       }
-      twitter.post(`${players[this.tweetTeamCountI].handler} Your team is ${players[this.tweetTeamCountI].color}`).then(() => {
+      twitter.post(`${players[this.tweetTeamInitCountI].handler} Your team is ${players[this.tweetTeamInitCountI].color} #Game${gameMechanics.gameId}`).then(() => {
+        this.tweetTeamInitCountI ++;
+        this.tweetTeamInit();
+      }).catch((error) => {
+        console.log(error);
+        this.tweetTeamInitCountI ++;
+        this.tweetTeamInit();
+      });
+    }
+  },
+  tweetTeam() {
+    let currentTeam = players.filter((el) => {
+      return el.color === game.player;
+    });
+
+    if (this.tweetTeamCountI < currentTeam.length) {
+      twitter.post(`${currentTeam[this.tweetTeamCountI].handler} It's your teams turn, replay your move to this message #Game${gameMechanics.gameId} #move${gameMechanics.move}`).then(() => {
         this.tweetTeamCountI ++;
         this.tweetTeam();
       }).catch((error) => {
@@ -89,7 +163,8 @@ const twitter = {
         this.tweetTeamCountI ++;
         this.tweetTeam();
       });
-
+    } else {
+      this.tweetTeamCountI = 0;
     }
   }
 };
@@ -100,9 +175,7 @@ const sockets = {
     io.on('connection', (socket) => {
       this.emitGame();
       this.emitIntro();
-    });
-    socket.on('disconnect', () => {
-      console.log('user disconnected');
+      this.disconnect(socket);
     });
   },
   emitGame() {
@@ -113,10 +186,15 @@ const sockets = {
   },
   emitIntro() {
     io.emit("intro", {
-      status: true,
-      countdown: 50,
-      gameId: game.gameId,
+      status: gameMechanics.intro,
+      countdown: gameMechanics.introTime,
+      gameId: gameMechanics.gameId,
       amountPlayers: players.length
+    });
+  },
+  disconnect(socket) {
+    socket.on('disconnect', () => {
+      console.log('user disconnected');
     });
   }
 }
@@ -132,6 +210,9 @@ const utils = {
       array[randomIndex] = temporaryValue;
     }
     return array;
+  },
+  getMostVotes(array){
+
   }
 };
 
@@ -142,100 +223,53 @@ client.stream('statuses/filter', {track: '@ButterCheeseEgg'}, function(stream) {
     console.log(event.user);
     let text = event.text.toLowerCase();
 
-    if (text.includes("Join")) {
-      let number = event.text.match(/\d/g);
-      number = number.join("");
-      // number = number.substring(0,1)
-      console.log(number);
-      console.log(game.gameId);
-      if (number == game.gameId) {
-        players.push({
-          id: event.user.id,
-          handler: `@${event.user.screen_name}`,
-          color: null,
-          sets: new Array(9).fill(null)
-        });
-        console.log(players);
-        twitter.post(`${players[players.length -1].handler} Welcome to buttercheeseeggs, Games starts in 60 Seconds`)
-      }
-
-      players = utils.suffle(players);
-      twitter.tweetTeam();
-
-    } else if(event.user.screen_name == "ButterCheeseEgg"){
-      let number = event.text.match(/\d/g);
-      number = number.join("");
-      number = number.substring(0, 1);
-
-      let user = players.find((players)=> {
-        return players.id === event.user.id
-      });
-
-      console.log(number, typeof number);
-      if (number >= 1 && number <= 9) {
-        game.score[number - 1] = user.color;
-        game.player = user.color;
-
-        io.emit('set', {
-          score: game.score,
-          player: game.player
-        });
-
-        if (game.checkEnding()) {
-          io.emit('set', {
-            score: game.score,
-            player: game.player
-          });
+    switch(gameMechanics.status){
+      case "intro":
+        if (text.includes("join") && event.user.screen_name !== "ButterCheeseEgg") {
+          let number = event.text.match(/\d/g);
+          number = number.join("");
+          // number = number.substring(0,1)
+          console.log(number);
+          console.log(gameMechanics.gameId);
+          if (number == gameMechanics.gameId) {
+            players.push({
+              id: event.user.id,
+              handler: `@${event.user.screen_name}`,
+              color: null,
+              sets: new Array(9).fill(null)
+            });
+            console.log(players);
+            twitter.post(`${players[players.length -1].handler} Welcome to buttercheeseeggs, Game starts in ${gameMechanics.introTime} Seconds`);
+            sockets.emitIntro();
+          }
         }
-      }
-  }
-    // console.log(typeof event.text);
-    // let gameId = event.text.split("#game").pop();
-    // console.log("gameid= " + gameId);
-    //
-    // if (gameId == game.gameId) {
-    //   if(event.text.includes("Green")){
-    //     let number = event.text.match(/\d/g);
-    //     number = number.join("");
-    //     number = number.substring(0,1)
-    //     console.log(number, typeof number);
-    //     if (number >= 1 && number <= 9) {
-    //       game.score[number - 1] = "Green";
-    //       game.player = "Green";
-    //       io.emit('set', {
-    //         score: game.score,
-    //         player: game.player
-    //       });
-    //
-    //       if (game.checkEnding()) {
-    //         io.emit('set', {
-    //           score: game.score,
-    //           player: game.player
-    //         });
-    //       }
-    //     }
-    //   } else if(event.text.includes("Yellow")){
-    //     let number = event.text.match(/\d/g);
-    //     number = number.join("");
-    //     number = number.substring(0,1)
-    //     console.log(number, typeof number);
-    //     if (number >= 1 && number <= 9) {
-    //       game.score[number - 1] = "Yellow";
-    //       game.player = "Yellow";
-    //       io.emit('set', {
-    //         score: game.score,
-    //         player: game.player
-    //       });
-    //
-    //       if (game.checkEnding()) {
-    //         io.emit('set', {
-    //           score: game.score,
-    //           player: game.player
-    //         });
-    //       }
-    //     }
-    //   }
-    // }
+        break;
+      case "game":
+        if (event.user.screen_name !== "ButterCheeseEgg") {
+          let number = event.text.match(/\d/g);
+          number = number.join("");
+          number = number.substring(0, 1);
+
+          let user = players.find((players)=> {
+            return players.id === event.user.id
+          });
+
+          if(user.color === game.player) {
+            if (number >= 1 && number <= 9) {
+              gameMechanics.sets.push({
+                id: user.id,
+                set: number
+              })
+              game.score[number - 1] = user.color;
+              game.player = user.color;
+              //sockets.emitGame();
+            }
+          } else {
+            twitter.post(`${user.handler} It's not your turn, your team is ${user.color}`);
+          }
+        }
+        break;
+    }
   });
 
   stream.on('error', function(error) {
@@ -243,6 +277,56 @@ client.stream('statuses/filter', {track: '@ButterCheeseEgg'}, function(stream) {
   });
 });
 
-
+gameMechanics.init();
 http.listen(3008, function() {
 })
+
+
+
+// console.log(typeof event.text);
+// let gameId = event.text.split("#game").pop();
+// console.log("gameid= " + gameId);
+//
+// if (gameId == game.gameId) {
+//   if(event.text.includes("Green")){
+//     let number = event.text.match(/\d/g);
+//     number = number.join("");
+//     number = number.substring(0,1)
+//     console.log(number, typeof number);
+//     if (number >= 1 && number <= 9) {
+//       game.score[number - 1] = "Green";
+//       game.player = "Green";
+//       io.emit('set', {
+//         score: game.score,
+//         player: game.player
+//       });
+//
+//       if (game.checkEnding()) {
+//         io.emit('set', {
+//           score: game.score,
+//           player: game.player
+//         });
+//       }
+//     }
+//   } else if(event.text.includes("Yellow")){
+//     let number = event.text.match(/\d/g);
+//     number = number.join("");
+//     number = number.substring(0,1)
+//     console.log(number, typeof number);
+//     if (number >= 1 && number <= 9) {
+//       game.score[number - 1] = "Yellow";
+//       game.player = "Yellow";
+//       io.emit('set', {
+//         score: game.score,
+//         player: game.player
+//       });
+//
+//       if (game.checkEnding()) {
+//         io.emit('set', {
+//           score: game.score,
+//           player: game.player
+//         });
+//       }
+//     }
+//   }
+// }
