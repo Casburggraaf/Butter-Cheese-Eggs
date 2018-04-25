@@ -79,6 +79,7 @@ table {
 	border-spacing: 15px;
 	width: 70%;
 	margin: 0 25% 0 5%;
+  table-layout: fixed;
 }
 
 td {
@@ -87,6 +88,8 @@ td {
 	border: 2px white solid;
 	border-radius: 10px;
 	background-color: #20C4FE;
+  font-size: 4em;
+  text-align: center;
 }
 
 .green {

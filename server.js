@@ -82,25 +82,33 @@ const gameMechanics = {
               avilibleChoses.push(i);
             };
           }
-          console.log(avilibleChoses);
+
           let randomChose = avilibleChoses[Math.floor(Math.random() * avilibleChoses.length)];
-          console.log(randomChose);
           game.score[randomChose] = game.player;
-          if (game.player === "Green") {
-            game.player = "Yellow";
-          } else {
-            game.player = "Green";
-          }
-          sockets.emitGame();
-          this.init();
         } else {
           let moves = [];
-          for (let i = 0; i < sets.length; i++) {
-            moves.push(sets[i].set);
+          for (let i = 0; i < this.sets.length; i++) {
+            moves.push(this.sets[i].set);
           };
-
-          this.sets = [];
+          console.log(moves);
+          let move = utils.getMostVotes(moves);
+          console.log(move);
+          console.log(typeof move);
+          game.score[move -1] = game.player;
+          console.log(game.score);
         }
+
+        if (game.player === "Green") {
+          game.player = "Yellow";
+        } else {
+          game.player = "Green";
+        }
+
+        this.sets = []
+        this.move = this.move + 1;
+        sockets.emitResetPoll();
+        sockets.emitGame();
+        this.init();
       }, this.setTime);
     }
   }
@@ -192,6 +200,17 @@ const sockets = {
       amountPlayers: players.length
     });
   },
+  emitPoll(number) {
+    io.emit("poll", {
+      number: number,
+      player: game.player
+    });
+  },
+  emitResetPoll() {
+    io.emit("resetPoll", {
+
+    });
+  },
   disconnect(socket) {
     socket.on('disconnect', () => {
       console.log('user disconnected');
@@ -211,8 +230,35 @@ const utils = {
     }
     return array;
   },
-  getMostVotes(array){
+  getMostVotes(store){
+    let frequency = {};
+    let max = 0;
+    let result;
+    let multiple = false;
+    let multipleStorage = [];
 
+    for(let v in store) {
+      frequency[store[v]]=(frequency[store[v]] || 0)+1;
+      if(frequency[store[v]] > max) {
+				multipleStorage = [];
+				multiple = false;
+        max = frequency[store[v]];
+        result = store[v];
+      } else if(frequency[store[v]] === max) {
+				multiple = true;
+				multipleStorage.push(store[v]);
+			}
+    }
+
+    if(multiple) {
+    	multipleStorage.push(result);
+    	result = multipleStorage[Math.floor(Math.random() * multipleStorage.length)];
+    	console.log("Random choose = " + result);
+    	return result
+    } else {
+    	console.log("One item = " + result)
+    	return result
+    }
   }
 };
 
@@ -262,6 +308,7 @@ client.stream('statuses/filter', {track: '@ButterCheeseEgg'}, function(stream) {
               })
               game.score[number - 1] = user.color;
               game.player = user.color;
+              sockets.emitPoll(number -1)
               //sockets.emitGame();
             }
           } else {

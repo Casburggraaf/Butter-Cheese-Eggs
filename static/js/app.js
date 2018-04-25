@@ -64,6 +64,7 @@
         //   game.turn = true;
         // }
       });
+
       app.socket.on("intro", function(data){
         let intro = document.querySelector("#intro");
         console.log(intro);
@@ -80,10 +81,28 @@
               clearInterval(coutndown);
             }
           },1000);
-
-
         }
-      })
+      });
+
+      app.socket.on("poll", function(data){
+        let spans = document.querySelectorAll("table span");
+
+        if(spans[data.number].innerHTML !== "") {
+          let tempScore = spans[data.number].innerHTML;
+          tempScore = parseInt(tempScore) + 1;
+          spans[data.number].innerHTML = tempScore;
+        } else {
+          spans[data.number].innerHTML = 1;
+        }
+        spans[data.number].style.color = data.player;
+      });
+
+      app.socket.on("resetPoll", function(data){
+        let spans = document.querySelectorAll("table span");
+        spans.forEach((el) => {
+          el.innerHTML = "";
+        });
+      });
     }
   };
 
