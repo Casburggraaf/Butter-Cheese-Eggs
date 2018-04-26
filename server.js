@@ -53,7 +53,7 @@ const gameMechanics = {
   move: 1,
   intro: true,
   introTime: 60,
-  setTime: 2000,
+  setTime: 30000,
   winner: null,
   init() {
     if(this.status === "intro"){
