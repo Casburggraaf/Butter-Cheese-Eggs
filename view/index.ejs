@@ -10,7 +10,15 @@
   <div id="intro">
     <h1>Welcome To ButterCheeseEgg</h1>
     <p>This game is based on Tic Tac To but controlled by twitter<br>
-      Send a message to @ButterCheeseEgg on twitter with <em>Join</em> and the game id -> <em id="gameId">0000</em>
+      Send a message to @ButterCheeseEgg on twitter with <em>Join</em> and the game id -> <em class="gameId">0000</em>
+      <h3>Example</h2>
+      <blockquote class="twitter-tweet" data-lang="nl"><p lang="en" dir="ltr"><a href="https://twitter.com/ButterCheeseEgg?ref_src=twsrc%5Etfw">@ButterCheeseEgg</a> join <span class="gameId">2084</span></p>&mdash; Cas Burggraaf (@CasBurggraaf) <a href="https://twitter.com/CasBurggraaf/status/988879834448322561?ref_src=twsrc%5Etfw">24 april 2018</a></blockquote>
+      <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+      <h3>And follow</h3>
+      <a class="twitter-follow-button"
+        href="https://twitter.com/ButterCheeseEgg"
+        data-size="large">
+        Follow @ButterCheeseEgg</a>
     </p>
     <h2 id="waitingTime"><span>60</span><br> Seconds before te game starts</h2>
     <h2 id="users">There are <span>0</span> player in the lobby, we need atleast 2 to start te game</h2>
@@ -35,9 +43,11 @@
   	</table>
     <div id="sidebar">
         <p id="score"><span id="scoreGroen">0</span>X<span id="scoreGeel">0</span></p>
-        <!-- <p class="sidebaruitleg">De bedoeling van het spel is 3 op een rij te krijgen. Je kan dit onder elkaar doen, naast elkaar of kruislings</p>
-        <p id="resetBeurt" class="sidebarTekst">Reset de Beurt<br> of gebruikt "spatiebalk"</p>
-        <p id="resetGame" class="sidebarTekst">Reset de Game<br> of gebruikt "enter"</p> -->
+        <p id="turn">Turn <span>Green</span></p>
+        <p id="timer"><span>60</span> Seconds</p>
+    </div>
+    <div class="connection hide">
+      <h3></h3>
     </div>
 </main>
 <script src="/socket.io/socket.io.js"></script>

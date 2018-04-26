@@ -27,12 +27,21 @@ const game = {
   score: new Array(9).fill(null),
   player: "Green",
   checkEnding() {
+    console.log(this.score);
     if((this.score[0] === "Green" && this.score[1] === "Green" && this.score[2] === "Green") || (this.score[3] === "Green" && this.score[4] === "Green" && this.score[5] === "Green") || (this.score[6] === "Green" && this.score[7] === "Green" && this.score[8] === "Green") || (this.score[0] === "Green" && this.score[4] === "Green" && this.score[8] === "Green") || (this.score[2] === "Green" && this.score[4] === "Green" && this.score[6] === "Green")) {
-      this.score = new Array(9).fill(null);
+      gameMechanics.winner = "Green";
+      console.log("Winner green");
       return true;
     } else if((this.score[0] === "Yellow" && this.score[1] === "Yellow" && this.score[2] === "Yellow") || (this.score[3] === "Yellow" && this.score[4] === "Yellow" && this.score[5] === "Yellow") || (this.score[6] === "Yellow" && this.score[7] === "Yellow" && this.score[8] === "Yellow") || (this.score[0] === "Yellow" && this.score[4] === "Yellow" && this.score[8] === "Yellow") || (this.score[2] === "Yellow" && this.score[4] === "Yellow" && this.score[6] === "Yellow")) {
-      this.score = new Array(9).fill(null);
+      gameMechanics.winner = "Yellow";
+      console.log("Winner Yellow");
       return true;
+    } else if (gameMechanics.move === 11) {
+      gameMechanics.winner = "Grey";
+      console.log("Winner None");
+      return true;
+    } else {
+      return false;
     }
   }
 };
@@ -43,8 +52,9 @@ const gameMechanics = {
   sets: [],
   move: 1,
   intro: true,
-  introTime: 20,
-  setTime: 20000,
+  introTime: 60,
+  setTime: 2000,
+  winner: null,
   init() {
     if(this.status === "intro"){
       sockets.init();
@@ -54,9 +64,11 @@ const gameMechanics = {
         if(this.introTime <= 0){
           if(players.length >= 2) {
             this.intro = false;
+            this.introTime = 60;
             this.status = "gameSetup";
             clearInterval(coutndown);
             this.init();
+
           } else {
             this.introTime = 60;
             console.log(this);
@@ -106,20 +118,46 @@ const gameMechanics = {
 
         this.sets = []
         this.move = this.move + 1;
-        sockets.emitResetPoll();
-        sockets.emitGame();
-        this.init();
+        console.log(game.checkEnding())
+        if(game.checkEnding()){
+          this.status = "finish";
+          this.init();
+        } else {
+          sockets.emitResetPoll();
+          sockets.emitGame();
+          this.init();
+        }
+
       }, this.setTime);
+    } else if (this.status === "finish") {
+      game.score = new Array(9).fill(gameMechanics.winner)
+      game.player = gameMechanics.winner;
+      sockets.emitResetPoll();
+      sockets.emitGame();
+      twitter.tweetWinner();
+
+      setTimeout(() => {
+        this.status = "intro";
+        this.gameId = Math.floor(Math.random() * 9000) + 1000;
+        this.move = 1;
+        game.score = new Array(9).fill(null);
+        this.intro = true;
+        players = [];
+        this.init();
+      }, 10000);
+
     }
   }
-}
+};
 
-let players = [{
-  id: 988760577932750800,
-  handler: `@ButterCheeseEgg`,
-  color: null,
-  sets: new Array(9).fill(null)
-}];
+let players = [
+//   {
+//   id: 988760577932750800,
+//   handler: `@ButterCheeseEgg`,
+//   color: null,
+//   sets: new Array(9).fill(null)
+// }
+];
 
 const twitter = {
   tweetTeamInitCountI: 0,
@@ -155,6 +193,8 @@ const twitter = {
         this.tweetTeamInitCountI ++;
         this.tweetTeamInit();
       });
+    } else {
+      this.tweetTeamCountI = 0;
     }
   },
   tweetTeam() {
@@ -174,6 +214,20 @@ const twitter = {
     } else {
       this.tweetTeamCountI = 0;
     }
+  },
+  tweetWinner() {
+    if(this.tweetTeamInitCountI < players.length){
+      twitter.post(`${players[this.tweetTeamInitCountI].handler} There is a winner! Team ${gameMechanics.winner} won! #Game${gameMechanics.gameId}`).then(() => {
+        this.tweetTeamInitCountI ++;
+        this.tweetTeamInit();
+      }).catch((error) => {
+        console.log(error);
+        this.tweetTeamInitCountI ++;
+        this.tweetTeamInit();
+      });
+    } else {
+      this.tweetTeamCountI = 0;
+    }
   }
 };
 
@@ -189,7 +243,8 @@ const sockets = {
   emitGame() {
     io.emit('game', {
       score: game.score,
-      player: game.player
+      player: game.player,
+      timer: gameMechanics.setTime
     });
   },
   emitIntro() {
